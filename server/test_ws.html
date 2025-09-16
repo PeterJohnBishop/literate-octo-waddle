@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WebSocket JWT Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    input, button { margin: 0.5rem 0; padding: 0.5rem; }
+    #log { border: 1px solid #ccc; padding: 1rem; margin-top: 1rem; height: 200px; overflow-y: auto; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>WebSocket JWT Test</h1>
+
+  <label for="token">JWT Token:</label><br/>
+  <input type="text" id="token" size="80" placeholder="Paste your JWT here"><br/>
+
+  <button id="connectBtn">Connect</button>
+  <button id="sendBtn" disabled>Send Message</button>
+
+  <div id="log"></div>
+
+  <script>
+    let ws;
+
+    function log(msg) {
+      const logBox = document.getElementById("log");
+      logBox.textContent += msg + "\n";
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    document.getElementById("connectBtn").onclick = () => {
+      const token = document.getElementById("token").value.trim();
+      if (!token) {
+        alert("Enter a token first!");
+        return;
+      }
+
+      const url = `ws://localhost/ws?token=${token}`;
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        log("✅ Connected to server");
+        document.getElementById("sendBtn").disabled = false;
+      };
+
+      ws.onmessage = (event) => {
+        log("📩 Message: " + event.data);
+      };
+
+      ws.onclose = () => {
+        log("❌ Disconnected");
+        document.getElementById("sendBtn").disabled = true;
+      };
+
+      ws.onerror = (err) => {
+        log("⚠️ Error: " + err);
+      };
+    };
+
+    document.getElementById("sendBtn").onclick = () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const msg = prompt("Enter message to send:");
+        if (msg) {
+          ws.send(msg);
+          log("➡️ Sent: " + msg);
+        }
+      }
+    };
+  </script>
+</body>
+</html>
