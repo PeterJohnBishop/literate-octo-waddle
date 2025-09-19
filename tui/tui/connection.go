@@ -34,7 +34,7 @@ type Connection struct {
 
 type ConnectionSuccessMsg struct{}
 
-func InitialConnectionModel(db *sql.DB) Connection {
+func InitialConnectionModel() Connection {
 	m := Connection{
 		inputs: make([]textinput.Model, 5),
 	}

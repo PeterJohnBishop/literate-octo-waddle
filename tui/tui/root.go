@@ -23,11 +23,10 @@ type Root struct {
 }
 
 // Construct the root with an initial empty connection form
-func InitialRootModel(db *sql.DB) Root {
+func InitialRootModel() Root {
 	return Root{
-		db:        db,
 		state:     ConnectionView,
-		connModel: InitialConnectionModel(db), // user fills this in
+		connModel: InitialConnectionModel(), // user fills this in
 	}
 }
 
