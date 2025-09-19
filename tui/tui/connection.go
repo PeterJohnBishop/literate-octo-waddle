@@ -32,10 +32,11 @@ type Connection struct {
 	db         *sql.DB
 }
 
+type ConnectionSuccessMsg struct{}
+
 func InitialConnectionModel(db *sql.DB) Connection {
 	m := Connection{
 		inputs: make([]textinput.Model, 5),
-		db:     db,
 	}
 
 	var t textinput.Model
@@ -139,13 +140,13 @@ func (m Connection) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case connectionResultMsg:
 		if msg.err != nil {
 			m.status = fmt.Sprintf("Connection failed: %v", msg.err)
-		} else {
-			m.db = msg.db
-			// For now, we'll just update the status message
-			// return SchemaExplorerModel(m.db), nil
-			m.status = "Connected to Postgres successfully!"
+			return m, nil
 		}
-		return m, nil
+
+		m.db = msg.db
+		m.status = "Connected to Postgres successfully!"
+		return m, func() tea.Msg { return ConnectionSuccessMsg{} }
+
 	}
 
 	cmd := m.updateInputs(msg)
@@ -168,14 +169,16 @@ func connectDB(host, port, user, pass, dbname string, db *sql.DB) tea.Cmd {
 		connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 			host, port, user, pass, dbname)
 
-		db, err := sql.Open("postgres", connStr)
+		postgres, err := sql.Open("postgres", connStr)
 		if err != nil {
 			return connectionResultMsg{err: err}
 		}
 
-		if err := db.Ping(); err != nil {
+		if err := postgres.Ping(); err != nil {
 			return connectionResultMsg{err: err}
 		}
+
+		db = postgres
 
 		return connectionResultMsg{err: nil, db: db}
 	}
@@ -189,7 +192,7 @@ type connectionResultMsg struct {
 func (m Connection) View() string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "\n\nPostgres Database Config\n\n")
+	fmt.Fprintf(&b, "\n\nConfigure Postgres connection:\n\n")
 
 	for i := range m.inputs {
 		b.WriteString(m.inputs[i].View())
