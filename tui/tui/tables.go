@@ -39,21 +39,10 @@ type Tables struct {
 	selected map[int]struct{}
 }
 
-type GoBackMsg struct{}
-
-func InitialTablesModel(db *sql.DB) Tables {
-
-	tables, err := listTables(db)
-	if err != nil {
-		return Tables{
-			status: fmt.Sprintf("Error fetching tables: %v", err),
-			db:     db,
-		}
-	}
+func InitialTablesModel() Tables {
 
 	return Tables{
-		db:       db,
-		tables:   tables,
+		status:   "Waiting for database connection...",
 		selected: make(map[int]struct{}),
 	}
 }
@@ -73,7 +62,7 @@ func (m Tables) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "ctrl+b":
-			return m, func() tea.Msg { return GoBackMsg{} }
+			return m, func() tea.Msg { return BackToConnectionMsg{} }
 
 		case "up", "k":
 			if m.cursor > 0 {
@@ -93,13 +82,40 @@ func (m Tables) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selected[m.cursor] = struct{}{}
 			}
 		}
+
+	case ConnectionSuccessMsg:
+		m.db = msg.db
+		m.status = "Connected to database. Loading tables..."
+		tables, err := listTables(m.db)
+		if err != nil {
+			m.status = fmt.Sprintf("Error fetching tables: %v", err)
+			return m, nil
+		}
+		m.tables = tables
+		if len(m.tables) == 0 {
+			m.status = "No tables found in the database."
+		} else {
+			m.status = fmt.Sprintf("Found %d tables. Use arrow keys to navigate, space to select.", len(m.tables))
+		}
+
+	case BackToConnectionMsg:
+		return InitialConnectionModel(), nil
 	}
 
 	return m, nil
 }
 
 func (m Tables) View() string {
-	s := "Tables: \n\n"
+
+	if m.db == nil {
+		return ""
+	}
+
+	if len(m.tables) == 0 {
+		return "\n\nNo tables found in the database.\n\nDouble check your connection, q to quit.\n"
+	}
+
+	s := "\n\nTables: \n\n"
 
 	for i, choice := range m.tables {
 
@@ -116,7 +132,7 @@ func (m Tables) View() string {
 		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
 	}
 
-	s += "\nPress ctrl+b for back, q to quit.\n"
+	s += "\nPress q to quit.\n"
 
 	return s
 }

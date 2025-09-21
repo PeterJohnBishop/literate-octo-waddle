@@ -32,8 +32,6 @@ type Connection struct {
 	db         *sql.DB
 }
 
-type ConnectionSuccessMsg struct{}
-
 func InitialConnectionModel() Connection {
 	m := Connection{
 		inputs: make([]textinput.Model, 5),
@@ -142,10 +140,8 @@ func (m Connection) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = fmt.Sprintf("Connection failed: %v", msg.err)
 			return m, nil
 		}
-
-		m.db = msg.db
-		m.status = "Connected to Postgres successfully!"
-		return m, func() tea.Msg { return ConnectionSuccessMsg{} }
+		m.status = "Connected!"
+		return m, nil
 
 	}
 
@@ -180,7 +176,7 @@ func connectDB(host, port, user, pass, dbname string, db *sql.DB) tea.Cmd {
 
 		db = postgres
 
-		return connectionResultMsg{err: nil, db: db}
+		return ConnectionSuccessMsg{db: db}
 	}
 }
 
