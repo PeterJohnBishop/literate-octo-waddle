@@ -42,7 +42,7 @@ type Tables struct {
 func InitialTablesModel() Tables {
 
 	return Tables{
-		status:   "Waiting for database connection...",
+		status:   "",
 		selected: make(map[int]struct{}),
 	}
 }
@@ -75,11 +75,18 @@ func (m Tables) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "enter", " ":
+			if len(m.tables) == 0 {
+				return m, nil // nothing to select
+			}
+
 			_, ok := m.selected[m.cursor]
 			if ok {
 				delete(m.selected, m.cursor)
 			} else {
 				m.selected[m.cursor] = struct{}{}
+				return m, func() tea.Msg {
+					return TableSelectedMsg{m.tables[m.cursor], m.db}
+				}
 			}
 		}
 
@@ -92,11 +99,7 @@ func (m Tables) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.tables = tables
-		if len(m.tables) == 0 {
-			m.status = "No tables found in the database."
-		} else {
-			m.status = fmt.Sprintf("Found %d tables. Use arrow keys to navigate, space to select.", len(m.tables))
-		}
+		m.cursor = 0
 
 	case BackToConnectionMsg:
 		return InitialConnectionModel(), nil

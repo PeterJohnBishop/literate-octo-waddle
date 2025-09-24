@@ -11,6 +11,7 @@ import (
 type Parent struct {
 	connection Connection
 	tables     Tables
+	records    Records
 }
 
 type ConnectionSuccessMsg struct {
@@ -19,11 +20,17 @@ type ConnectionSuccessMsg struct {
 
 type BackToConnectionMsg struct{}
 type TablesLoadedMsg struct{}
+type TableSelectedMsg struct {
+	table string
+	db    *sql.DB
+}
+type BackToTablesMsg struct{}
 
 func InitialParentModel() Parent {
 	return Parent{
 		connection: InitialConnectionModel(),
 		tables:     InitialTablesModel(),
+		records:    InitialRecordsModel(),
 	}
 }
 
@@ -60,6 +67,12 @@ func (m Parent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
+	updated, cmd = m.records.Update(msg)
+	m.records = updated.(Records)
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+
 	return m, tea.Batch(cmds...)
 }
 
@@ -76,7 +89,7 @@ func (m Parent) View() string {
 	// Bottom child below
 	col := lipgloss.JoinVertical(lipgloss.Left,
 		row,
-		// m.status.View(), --- IGNORE ---
+		m.records.View(),
 	)
 
 	return col
